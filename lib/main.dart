@@ -137,7 +137,7 @@ class _MainAppState extends State<MainApp> {
                     });
                   },
                 ),
-                Text('Stop playing af: ${stopTimeout} minutes'),
+                Text('Stop playing af: $stopTimeout minutes'),
                 Slider(
                   value: playInterval.toDouble(),
                   min: 1,
@@ -150,7 +150,7 @@ class _MainAppState extends State<MainApp> {
                     });
                   },
                 ),
-                Text('Play interval: ${playInterval} seconds'),
+                Text('Play interval: $playInterval seconds'),
                 ElevatedButton(
                   onPressed: isPlaying ? _stopAudio : _playAudio,
                   child: Text(
