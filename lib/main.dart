@@ -94,9 +94,9 @@ class _MainAppState extends State<MainApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData.light(),
+      theme: ThemeData.dark(),
       darkTheme: ThemeData.dark(),
-      themeMode: ThemeMode.system, // Use system theme mode
+      themeMode: ThemeMode.dark,
       home: Scaffold(
         body: Container(
           decoration: BoxDecoration(
