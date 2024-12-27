@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:async';
@@ -15,67 +14,8 @@ Future<List<String>> listAssetFiles(String path) async {
   return assetPaths;
 }
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  initializeService();
+void main() {
   runApp(const MainApp());
-}
-
-void initializeService() {
-  FlutterBackgroundService().configure(
-      iosConfiguration: IosConfiguration(),
-      androidConfiguration: AndroidConfiguration(
-        autoStart: false,
-        isForegroundMode: true,
-        foregroundServiceTypes: [AndroidForegroundType.mediaPlayback],
-        initialNotificationTitle: 'PiperSleep',
-        initialNotificationContent: 'Playing words to help you sleep',
-        onStart: onStart,
-      ));
-}
-
-@pragma('vm:entry-point')
-void onStart(ServiceInstance service) async {
-  log('onStart', name: 'PiperSleepService');
-
-  final player = AudioPlayer();
-  // we already have prefix in the path
-  player.audioCache = AudioCache(prefix: '');
-
-  final assetFiles = await listAssetFiles('assets/audio/');
-  Timer? playTimer; // Timer to play periodically
-
-  log('Found $assetFiles.length assets', name: 'PiperSleepService');
-
-  // Start playing audio and timer
-  service.on('playAudio').listen((event) async {
-    log('Starting playback', name: 'PiperSleepService');
-
-    bool isShuffleEnabled = event?['isShuffleEnabled'];
-    int playInterval = event?['playInterval'];
-    int nextAsset = 0;
-
-    playTimer?.cancel();
-    playTimer = Timer.periodic(Duration(seconds: playInterval), (timer) async {
-      if (isShuffleEnabled) {
-        log('Shuffle play', name: 'PiperSleepService');
-        nextAsset = Random().nextInt(assetFiles.length);
-      } else {
-        if (++nextAsset >= assetFiles.length) nextAsset = 0;
-      }
-
-      log('Playing asset: $nextAsset', name: 'PiperSleepService');
-      await player.play(AssetSource(assetFiles[nextAsset]));
-    });
-  });
-
-  // Stop playback logic
-  service.on('stopAudio').listen((event) async {
-    log('Stopping playback', name: 'PiperSleepService');
-    await player.stop();
-    playTimer?.cancel();
-    service.stopSelf();
-  });
 }
 
 class MainApp extends StatefulWidget {
@@ -91,16 +31,27 @@ class _MainAppState extends State<MainApp> {
   int playInterval = 5; // Interval in seconds
   int stopTimeout = 10; // Timeout in minutes
   Timer? stopTimer; // Stop playing after timeout
+  Timer? playTimer; // Timer to play periodically
+  AudioPlayer player = AudioPlayer();
+  List<String> assetFiles = [];
 
   @override
   void initState() {
     super.initState();
+    loadAssets();
+    player.audioCache = AudioCache(prefix: ''); // prefix is in the path
   }
 
+  Future<void> loadAssets() async {
+    assetFiles = await listAssetFiles('assets/audio/');
+  }
+
+  // Stop audio and cancel timers
   void stopPlaying() {
     log('Stopping playback', name: 'MainApp');
     stopTimer?.cancel();
-    FlutterBackgroundService().invoke('stopAudio');
+    playTimer?.cancel();
+    player.stop();
 
     setState(() {
       isPlaying = false;
@@ -108,33 +59,35 @@ class _MainAppState extends State<MainApp> {
   }
 
   // Play audio and set timers
-  void startPlaying() async {
+  void startPlaying() {
     setState(() {
       isPlaying = true;
     });
-
-    bool isServiceRunning = await FlutterBackgroundService().isRunning();
-    if (!isServiceRunning) {
-      log('Service is not running, starting', name: 'PiperSleepService');
-      await Future.wait([
-        FlutterBackgroundService().startService(),
-        Future.delayed(Duration(seconds: 2))
-      ]);
-    }
 
     log('Invoking playback: $isShuffleEnabled, $playInterval', name: 'MainApp');
 
     // Stop after specified minutes
     stopTimer = Timer(Duration(minutes: stopTimeout), stopPlaying);
 
-    FlutterBackgroundService().invoke('playAudio',
-        {'isShuffleEnabled': isShuffleEnabled, 'playInterval': playInterval});
+    int nextAsset = 0;
+    playTimer = Timer.periodic(Duration(seconds: playInterval), (timer) async {
+      if (isShuffleEnabled) {
+        log('Shuffle play', name: 'MainApp');
+        nextAsset = Random().nextInt(assetFiles.length);
+      } else {
+        if (++nextAsset >= assetFiles.length) nextAsset = 0;
+      }
+
+      log('Playing asset: $nextAsset', name: 'MainApp');
+      await player.play(AssetSource(assetFiles[nextAsset]));
+    });
   }
 
   @override
   void dispose() {
     log('Disposing', name: 'MainApp');
     stopTimer?.cancel();
+    playTimer?.cancel();
     super.dispose();
   }
 
