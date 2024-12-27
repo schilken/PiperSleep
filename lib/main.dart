@@ -116,8 +116,8 @@ class _MainAppState extends State<MainApp> {
                   IgnorePointer(
                     ignoring: isPlaying,
                     child: AnimatedOpacity(
-                      opacity: isPlaying ? 0.5 : 1.0,
-                      duration: Duration(milliseconds: 3000),
+                      opacity: isPlaying ? 0.3 : 1.0,
+                      duration: Duration(milliseconds: 300),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
