@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' show log;
@@ -59,10 +60,19 @@ class _MainAppState extends State<MainApp> {
   }
 
   // Play audio and set timers
-  void startPlaying() {
+  void startPlaying() async {
     setState(() {
       isPlaying = true;
     });
+
+    var status = await Permission.ignoreBatteryOptimizations.status;
+    if (status != PermissionStatus.granted) {
+      status = await Permission.ignoreBatteryOptimizations.request();
+      if (status != PermissionStatus.granted) {
+        log('Permission denied, app might be stopped unexpectedly',
+            name: 'MainApp');
+      }
+    }
 
     log('Invoking playback: $isShuffleEnabled, $playInterval', name: 'MainApp');
 
