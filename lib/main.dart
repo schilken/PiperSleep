@@ -44,7 +44,7 @@ class _MainAppState extends State<MainApp> {
   }
 
   Future<void> loadAssets() async {
-    assetFiles = await listAssetFiles('assets/audio/');
+    assetFiles = await listAssetFiles('assets/audio');
   }
 
   // Stop audio and cancel timers
